@@ -11,3 +11,4 @@ ipfshttpclient==0.8.0a2
 # Utilities
 requests>=2.31.0
 
+# curl -L https://foundry.paradigm.xyz | bash

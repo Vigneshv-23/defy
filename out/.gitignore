@@ -1,0 +1,10 @@
+# Environment variables
+.env
+
+# Build / cache folders
+cache/
+out/
+
+# Python stuff (optional but smart)
+__pycache__/
+venv/
