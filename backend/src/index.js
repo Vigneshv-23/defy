@@ -1,14 +1,18 @@
 import express from "express";
+import dotenv from "dotenv";
 import { startListener } from "./listener.js";
 
+dotenv.config();
+
 const app = express();
-app.use(express.json());
+const PORT = 3000;
 
 app.get("/", (_, res) => {
-  res.send("InferChain backend running");
+  res.send("Inference backend running");
 });
 
-app.listen(3000, () => {
-  console.log("🌐 Backend running on port 3000");
-  startListener();
+app.listen(PORT, () => {
+  console.log(`🌐 Backend running on port ${PORT}`);
 });
+
+startListener();

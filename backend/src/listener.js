@@ -1,27 +1,38 @@
 import { ethers } from "ethers";
-import { provider, wallet, ADDRESSES } from "./config.js";
-import { InferenceManagerABI } from "./contracts/InferenceManager.js";
-import { runInference } from "./worker.js";
-import { submitResult } from "./submitter.js";
-
-const contract = new ethers.Contract(
-  ADDRESSES.inferenceManager,
-  InferenceManagerABI,
-  wallet
-);
+import inferenceManagerArtifact from "./contracts/InferenceManager.json" assert { type: "json" };
 
 export function startListener() {
+  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+  const abi = inferenceManagerArtifact.abi;
+
+  const inferenceManager = new ethers.Contract(
+    process.env.INFERENCE_MANAGER,
+    abi,
+    wallet
+  );
+
   console.log("🚀 Listening for inference requests...");
 
-  contract.on("InferenceRequested", async (requestId, user, modelId) => {
-    console.log("📥 New request:", requestId.toString());
+  inferenceManager.removeAllListeners("InferenceRequested");
 
-    // 1️⃣ Run inference (mock for now)
-    const result = await runInference(modelId);
+  inferenceManager.on(
+    "InferenceRequested",
+    async (requestId, user, modelId) => {
+      try {
+        console.log("📥 New request:", requestId.toString());
 
-    // 2️⃣ Submit result on-chain
-    await submitResult(requestId);
+        console.log("🧠 Running inference...");
+        await new Promise((r) => setTimeout(r, 2000));
 
-    console.log("✅ Request fulfilled:", requestId.toString());
-  });
+        const tx = await inferenceManager.submitResult(requestId);
+        await tx.wait();
+
+        console.log("✅ Inference fulfilled:", requestId.toString());
+      } catch (err) {
+        console.error("❌ Inference failed:", err);
+      }
+    }
+  );
 }
