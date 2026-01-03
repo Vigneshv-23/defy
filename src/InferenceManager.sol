@@ -6,12 +6,17 @@ interface INodeRegistry {
 }
 
 interface IModelRegistry {
+    function getPricePerMinute(uint256 modelId)
+        external
+        view
+        returns (uint256);
+
     function getModel(uint256 modelId)
         external
         view
         returns (
             address owner,
-            uint256 price,
+            uint256 pricePerMinute,
             string memory ipfsCid
         );
 }
@@ -21,6 +26,7 @@ contract InferenceManager {
         address user;
         uint256 modelId;
         uint256 paidAmount;
+        uint256 expiresAt;
         bool fulfilled;
     }
 
@@ -33,7 +39,9 @@ contract InferenceManager {
     event InferenceRequested(
         uint256 indexed requestId,
         address indexed user,
-        uint256 indexed modelId
+        uint256 indexed modelId,
+        uint256 durationMinutes,
+        uint256 expiresAt
     );
 
     event InferenceFulfilled(
@@ -46,9 +54,19 @@ contract InferenceManager {
         modelRegistry = IModelRegistry(_modelRegistry);
     }
 
-    function requestInference(uint256 modelId) external payable {
-        (, uint256 price, ) = modelRegistry.getModel(modelId);
-        require(msg.value == price, "Incorrect payment");
+    function requestInference(
+        uint256 modelId,
+        uint256 durationMinutes
+    ) external payable returns (uint256) {
+        require(durationMinutes > 0, "Invalid duration");
+
+        uint256 pricePerMinute =
+            modelRegistry.getPricePerMinute(modelId);
+
+        uint256 totalCost =
+            pricePerMinute * durationMinutes;
+
+        require(msg.value == totalCost, "Incorrect payment");
 
         uint256 requestId = nextRequestId++;
 
@@ -56,10 +74,19 @@ contract InferenceManager {
             user: msg.sender,
             modelId: modelId,
             paidAmount: msg.value,
+            expiresAt: block.timestamp + (durationMinutes * 60),
             fulfilled: false
         });
 
-        emit InferenceRequested(requestId, msg.sender, modelId);
+        emit InferenceRequested(
+            requestId,
+            msg.sender,
+            modelId,
+            durationMinutes,
+            requests[requestId].expiresAt
+        );
+
+        return requestId;
     }
 
     function submitResult(uint256 requestId) external {
@@ -69,7 +96,12 @@ contract InferenceManager {
         );
 
         InferenceRequest storage req = requests[requestId];
+
         require(!req.fulfilled, "Already fulfilled");
+        require(
+            block.timestamp <= req.expiresAt,
+            "Request expired"
+        );
 
         req.fulfilled = true;
 
@@ -79,11 +111,13 @@ contract InferenceManager {
         uint256 nodeFee = req.paidAmount / 2;
         uint256 modelFee = req.paidAmount - nodeFee;
 
-        (bool ok1, ) = payable(msg.sender).call{value: nodeFee}("");
+        (bool ok1, ) =
+            payable(msg.sender).call{value: nodeFee}("");
         require(ok1, "Node payment failed");
 
-        (bool ok2, ) = payable(modelOwner).call{value: modelFee}("");
-        require(ok2, "Model owner payment failed");
+        (bool ok2, ) =
+            payable(modelOwner).call{value: modelFee}("");
+        require(ok2, "Model payment failed");
 
         emit InferenceFulfilled(requestId, msg.sender);
     }
