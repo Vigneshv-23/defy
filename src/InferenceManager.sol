@@ -12,7 +12,7 @@ interface IModelRegistry {
         returns (
             address owner,
             uint256 price,
-            string memory ipfsCID
+            string memory ipfsCid
         );
 }
 
@@ -47,9 +47,7 @@ contract InferenceManager {
     }
 
     function requestInference(uint256 modelId) external payable {
-        (address owner, uint256 price, ) =
-            modelRegistry.getModel(modelId);
-
+        (, uint256 price, ) = modelRegistry.getModel(modelId);
         require(msg.value == price, "Incorrect payment");
 
         uint256 requestId = nextRequestId++;
@@ -81,10 +79,12 @@ contract InferenceManager {
         uint256 nodeFee = req.paidAmount / 2;
         uint256 modelFee = req.paidAmount - nodeFee;
 
-        payable(msg.sender).transfer(nodeFee);
-        payable(modelOwner).transfer(modelFee);
+        (bool ok1, ) = payable(msg.sender).call{value: nodeFee}("");
+        require(ok1, "Node payment failed");
+
+        (bool ok2, ) = payable(modelOwner).call{value: modelFee}("");
+        require(ok2, "Model owner payment failed");
 
         emit InferenceFulfilled(requestId, msg.sender);
     }
 }
-
