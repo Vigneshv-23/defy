@@ -1,1 +1,23 @@
-{}
+{
+  "name": "defy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vigneshv-23/defy.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Vigneshv-23/defy/issues"
+  },
+  "homepage": "https://github.com/Vigneshv-23/defy#readme",
+  "description": ""
+}

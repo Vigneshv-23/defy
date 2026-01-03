@@ -8,3 +8,5 @@ out/
 # Python stuff (optional but smart)
 __pycache__/
 venv/
+node_modules/
+
