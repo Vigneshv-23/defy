@@ -1,0 +1,5 @@
+{
+  "model_name": "demo-text-model",
+  "type": "text",
+  "note": "Dummy model file for InferChain MVP"
+}

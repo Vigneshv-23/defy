@@ -1,49 +1,67 @@
 import { ethers } from "ethers";
 import inferenceManagerArtifact from "./contracts/InferenceManager.json" assert { type: "json" };
 
-export async function startListener() {
-  // 1️⃣ Provider
-  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+import Rental from "./models/Rental.js";
+import { generateApiKey } from "./utils/apiKey.js";
 
-  // 2️⃣ Wallet MUST come from PRIVATE_KEY (approved node)
+export async function startListener() {
+  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
   console.log("🧾 Backend node address:", await wallet.getAddress());
 
-  // 3️⃣ Contract instance with WALLET (not provider signer)
   const inferenceManager = new ethers.Contract(
     process.env.INFERENCE_MANAGER,
     inferenceManagerArtifact.abi,
     wallet
   );
 
-  console.log("🚀 Listening for inference requests...");
+  console.log("🚀 Listening for contract events...");
 
-  // Clean old listeners (important on restart)
-  inferenceManager.removeAllListeners("InferenceRequested");
+  // Clean listeners on restart
+  inferenceManager.removeAllListeners();
 
-  // 4️⃣ Listen for events
   inferenceManager.on(
     "InferenceRequested",
-    async (requestId, user, modelId, minutes, expiresAt) => {
+    async (requestId, user, modelId) => {
       try {
-        console.log("📥 New inference request");
+        console.log("📥 InferenceRequested event");
         console.log(" requestId:", requestId.toString());
         console.log(" user:", user);
         console.log(" modelId:", modelId.toString());
-        console.log(" minutes:", minutes.toString());
-        console.log(" expiresAt:", expiresAt.toString());
 
+        /* =========================
+           TEMP RENTAL LOGIC (MVP)
+           Since ABI doesn't include minutes yet
+        ========================= */
+        const DEFAULT_MINUTES = 10;
+
+        const expiresAt = new Date(
+          Date.now() + DEFAULT_MINUTES * 60 * 1000
+        );
+
+        const rental = await Rental.create({
+          modelId: modelId.toString(),
+          customerWallet: user.toLowerCase(),
+          apiKey: generateApiKey(),
+          expiresAt
+        });
+
+        console.log("🔑 API key issued:", rental.apiKey);
+        console.log("⏳ Expires at:", expiresAt.toISOString());
+
+        /* =========================
+           Simulate inference
+        ========================= */
         console.log("🧠 Running inference...");
         await new Promise((r) => setTimeout(r, 2000));
 
-        // 5️⃣ Submit result (ONLY approved node can do this)
         const tx = await inferenceManager.submitResult(requestId);
         await tx.wait();
 
         console.log("✅ Inference fulfilled:", requestId.toString());
       } catch (err) {
-        console.error("❌ Inference failed:", err);
+        console.error("❌ Listener error:", err);
       }
     }
   );
