@@ -24,6 +24,10 @@ const modelSchema = new mongoose.Schema(
     active: {
       type: Boolean,
       default: true
+    },
+    blockchainModelId: {
+      type: String,
+      index: true
     }
   },
   { timestamps: true }

@@ -1,0 +1,78 @@
+[
+  {
+    "type": "function",
+    "name": "getModel",
+    "inputs": [{"name": "modelId", "type": "uint256", "internalType": "uint256"}],
+    "outputs": [
+      {"name": "owner", "type": "address", "internalType": "address"},
+      {"name": "pricePerMinute", "type": "uint256", "internalType": "uint256"},
+      {"name": "ipfsCid", "type": "string", "internalType": "string"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPricePerMinute",
+    "inputs": [{"name": "modelId", "type": "uint256", "internalType": "uint256"}],
+    "outputs": [{"name": "", "type": "uint256", "internalType": "uint256"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "models",
+    "inputs": [{"name": "", "type": "uint256", "internalType": "uint256"}],
+    "outputs": [
+      {"name": "owner", "type": "address", "internalType": "address"},
+      {"name": "ipfsCid", "type": "string", "internalType": "string"},
+      {"name": "pricePerMinute", "type": "uint256", "internalType": "uint256"}
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nextModelId",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "uint256", "internalType": "uint256"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "registerModel",
+    "inputs": [
+      {"name": "ipfsCid", "type": "string", "internalType": "string"},
+      {"name": "pricePerMinute", "type": "uint256", "internalType": "uint256"}
+    ],
+    "outputs": [{"name": "", "type": "uint256", "internalType": "uint256"}],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updatePrice",
+    "inputs": [
+      {"name": "modelId", "type": "uint256", "internalType": "uint256"},
+      {"name": "newPricePerMinute", "type": "uint256", "internalType": "uint256"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "ModelPriceUpdated",
+    "inputs": [
+      {"name": "modelId", "type": "uint256", "indexed": true, "internalType": "uint256"},
+      {"name": "newPricePerMinute", "type": "uint256", "indexed": false, "internalType": "uint256"}
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ModelRegistered",
+    "inputs": [
+      {"name": "modelId", "type": "uint256", "indexed": true, "internalType": "uint256"},
+      {"name": "owner", "type": "address", "indexed": true, "internalType": "address"},
+      {"name": "ipfsCid", "type": "string", "indexed": false, "internalType": "string"},
+      {"name": "pricePerMinute", "type": "uint256", "indexed": false, "internalType": "uint256"}
+    ],
+    "anonymous": false
+  }
+]

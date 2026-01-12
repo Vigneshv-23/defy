@@ -1,0 +1,311 @@
+================================================================================
+PAYMENT FLOW TEST SCRIPTS
+================================================================================
+This file contains all the commands used to test the payment flow end-to-end.
+Copy and paste these commands to reproduce the test.
+
+================================================================================
+PREREQUISITES
+================================================================================
+
+1. Make sure Anvil is running:
+   anvil
+
+   Default RPC URL: http://localhost:8545
+
+2. Contracts must be deployed (use DeployAll.s.sol script):
+   forge script script/DeployAll.s.sol:DeployAll \
+     --rpc-url http://localhost:8545 \
+     --broadcast \
+     --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+================================================================================
+ACCOUNT INFORMATION
+================================================================================
+
+Developer/Deployer Account (Account 0):
+  Address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+  Private Key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+  Role: Contract deployer, NodeRegistry admin, ModelOwner
+
+Customer Account 1:
+  Address: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+  Private Key: 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+  Role: Customer
+
+Customer Account 2:
+  Address: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+  Private Key: 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+  Role: Customer or ModelOwner
+
+================================================================================
+DEPLOYED CONTRACT ADDRESSES
+================================================================================
+
+NodeRegistry: 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9
+ModelRegistry: 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9
+InferenceManager: 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707
+
+================================================================================
+STEP 1: CHECK INITIAL BALANCES
+================================================================================
+
+# Check Customer 1 balance
+cast balance 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 --rpc-url http://localhost:8545
+
+# Check Contract balance
+cast balance 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 --rpc-url http://localhost:8545
+
+# Check Model Owner balance
+cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://localhost:8545
+
+================================================================================
+STEP 2: REGISTER A MODEL IN MODEL REGISTRY
+================================================================================
+
+# Register model with price 0.001 ETH per minute (1000000000000000 wei)
+# IPFS CID: QmTestModelCID123
+# Model ID will be 0 (first model)
+
+cast send 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9 \
+  "registerModel(string,uint256)" \
+  "QmTestModelCID123" \
+  1000000000000000 \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+  --rpc-url http://localhost:8545
+
+# Verify model was registered (get model details for modelId 0)
+cast call 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9 \
+  "getModel(uint256)" \
+  0 \
+  --rpc-url http://localhost:8545
+
+# Get price per minute for model 0
+cast call 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9 \
+  "getPricePerMinute(uint256)" \
+  0 \
+  --rpc-url http://localhost:8545
+
+================================================================================
+STEP 3: ADD NODE TO NODE REGISTRY
+================================================================================
+
+# Add backend node address (deployer account) to NodeRegistry
+# This allows the backend to submit inference results
+
+cast send 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9 \
+  "addNode(address)" \
+  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+  --rpc-url http://localhost:8545
+
+# Verify node is approved
+cast call 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9 \
+  "isApproved(address)" \
+  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 \
+  --rpc-url http://localhost:8545
+
+# Check NodeRegistry admin
+cast call 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9 \
+  "admin()" \
+  --rpc-url http://localhost:8545
+
+================================================================================
+STEP 4: CUSTOMER REQUESTS INFERENCE (PAYMENT)
+================================================================================
+
+# Customer requests inference for 10 minutes
+# Model ID: 0
+# Duration: 10 minutes
+# Price: 0.001 ETH/min × 10 min = 0.01 ETH = 10000000000000000 wei
+# This transaction includes payment (--value flag)
+
+cast send 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 \
+  "requestInference(uint256,uint256)" \
+  0 \
+  10 \
+  --value 10000000000000000 \
+  --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d \
+  --rpc-url http://localhost:8545
+
+# Verify balances after payment
+# Customer balance should decrease
+cast balance 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 --rpc-url http://localhost:8545
+
+# Contract balance should increase (received payment)
+cast balance 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 --rpc-url http://localhost:8545
+
+# Get request details (requestId 0)
+cast call 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 \
+  "requests(uint256)" \
+  0 \
+  --rpc-url http://localhost:8545
+
+================================================================================
+STEP 5: SUBMIT INFERENCE RESULT (DISTRIBUTE PAYMENT)
+================================================================================
+
+# Backend node submits result for requestId 0
+# This triggers payment distribution (50/50 split between node and model owner)
+# Since node and owner are the same address in this test, they receive the full payment
+
+cast send 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 \
+  "submitResult(uint256)" \
+  0 \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+  --rpc-url http://localhost:8545
+
+# Verify final balances after distribution
+# Contract balance should be 0 (all funds distributed)
+cast balance 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 --rpc-url http://localhost:8545
+
+# Customer balance should remain the same (paid already)
+cast balance 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 --rpc-url http://localhost:8545
+
+# Owner/Node balance should increase (received payment)
+cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://localhost:8545
+
+# Verify request is fulfilled
+cast call 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 \
+  "requests(uint256)" \
+  0 \
+  --rpc-url http://localhost:8545
+
+================================================================================
+ADDITIONAL USEFUL COMMANDS
+================================================================================
+
+# Check all balances at once (custom script format)
+echo "Customer: $(cast balance 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 --rpc-url http://localhost:8545 | awk '{printf \"%.6f ETH\", \$1/1e18}')"
+echo "Contract: $(cast balance 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 --rpc-url http://localhost:8545 | awk '{printf \"%.6f ETH\", \$1/1e18}')"
+echo "Owner: $(cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://localhost:8545 | awk '{printf \"%.6f ETH\", \$1/1e18}')"
+
+# Get next request ID
+cast call 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 \
+  "nextRequestId()" \
+  --rpc-url http://localhost:8545
+
+# Get next model ID
+cast call 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9 \
+  "nextModelId()" \
+  --rpc-url http://localhost:8545
+
+# Update model price (owner only)
+cast send 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9 \
+  "updatePrice(uint256,uint256)" \
+  0 \
+  2000000000000000 \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+  --rpc-url http://localhost:8545
+
+# Remove node from NodeRegistry (admin only)
+cast send 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9 \
+  "removeNode(address)" \
+  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+  --rpc-url http://localhost:8545
+
+================================================================================
+TEST WITH DIFFERENT AMOUNTS
+================================================================================
+
+# Example: Request inference for 5 minutes (0.005 ETH)
+cast send 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 \
+  "requestInference(uint256,uint256)" \
+  0 \
+  5 \
+  --value 5000000000000000 \
+  --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d \
+  --rpc-url http://localhost:8545
+
+# Example: Request inference for 30 minutes (0.03 ETH)
+cast send 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707 \
+  "requestInference(uint256,uint256)" \
+  0 \
+  30 \
+  --value 30000000000000000 \
+  --private-key 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d \
+  --rpc-url http://localhost:8545
+
+================================================================================
+DEPLOYMENT SCRIPTS
+================================================================================
+
+# Deploy all contracts (NodeRegistry, ModelRegistry, InferenceManager)
+forge script script/DeployAll.s.sol:DeployAll \
+  --rpc-url http://localhost:8545 \
+  --broadcast \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+# Deploy NodeRegistry only
+forge script script/DeployNodeRegistry.s.sol:DeployNodeRegistry \
+  --rpc-url http://localhost:8545 \
+  --broadcast \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+# Deploy ModelRegistry only
+forge script script/DeployModelRegistry.s.sol:DeployModelRegistry \
+  --rpc-url http://localhost:8545 \
+  --broadcast \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+# Deploy InferenceManager only (requires NodeRegistry and ModelRegistry addresses)
+# Update addresses in script first!
+forge script script/DeployInferenceManager.s.sol:DeployInferenceManager \
+  --rpc-url http://localhost:8545 \
+  --broadcast \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+================================================================================
+IMPORTANT: PRICING IS BASED ON MINUTES ⚠️
+================================================================================
+
+⚠️ ALL PRICING AND DURATION IS IN MINUTES, NOT HOURS OR DAYS!
+
+Key points:
+- Model pricing: pricePerMinute (wei per MINUTE)
+- Inference duration: durationMinutes (in MINUTES)
+- Total cost: pricePerMinute × durationMinutes
+- Example: 0.001 ETH/min × 10 minutes = 0.01 ETH
+- NOT: 0.001 ETH/hour × 10 hours!
+
+When registering models:
+- Price must be set as wei per MINUTE
+- Example: 0.001 ETH/minute = 1000000000000000 wei per minute
+
+When requesting inference:
+- Duration must be specified in MINUTES
+- Example: 10 minutes (NOT 10 hours!)
+
+================================================================================
+NOTES
+================================================================================
+
+1. All amounts are in wei (1 ETH = 1e18 wei)
+   - 0.001 ETH = 1000000000000000 wei
+   - 0.01 ETH = 10000000000000000 wei
+   - 0.005 ETH = 5000000000000000 wei
+
+2. ⚠️ ALL PRICING IS PER MINUTE:
+   - 0.001 ETH/minute = 1000000000000000 wei/minute
+   - Duration: 10 minutes = 10 (NOT 10 hours!)
+   - Payment: pricePerMinute × durationMinutes
+
+3. Gas costs are included in balance changes, so exact amounts may vary slightly
+
+4. The test uses the same address for node and model owner, so they receive 
+   both portions of the payment (50% + 50% = 100%)
+
+5. Request IDs start at 0 and increment with each request
+
+6. Model IDs start at 0 and increment with each registration
+
+7. The contract holds funds in escrow until submitResult() is called
+
+8. Payment is split 50/50 between node and model owner on fulfillment
+
+9. Expiration time: block.timestamp + (durationMinutes * 60) seconds
+
+================================================================================
+END OF SCRIPTS
+================================================================================

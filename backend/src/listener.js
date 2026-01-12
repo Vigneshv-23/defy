@@ -23,31 +23,32 @@ export async function startListener() {
 
   inferenceManager.on(
     "InferenceRequested",
-    async (requestId, user, modelId) => {
+    async (requestId, user, modelId, durationMinutes, expiresAtTimestamp) => {
       try {
         console.log("📥 InferenceRequested event");
         console.log(" requestId:", requestId.toString());
         console.log(" user:", user);
         console.log(" modelId:", modelId.toString());
+        console.log(" durationMinutes:", durationMinutes.toString());
+        console.log(" expiresAt (timestamp):", expiresAtTimestamp.toString());
 
-        /* =========================
-           TEMP RENTAL LOGIC (MVP)
-           Since ABI doesn't include minutes yet
-        ========================= */
-        const DEFAULT_MINUTES = 10;
+        // Extract durationMinutes from event (in seconds, convert to minutes)
+        const durationInMinutes = Number(durationMinutes);
+        const expiresAtTimestampSeconds = Number(expiresAtTimestamp);
 
-        const expiresAt = new Date(
-          Date.now() + DEFAULT_MINUTES * 60 * 1000
-        );
+        // Convert blockchain timestamp to JavaScript Date
+        const expiresAt = new Date(expiresAtTimestampSeconds * 1000);
 
         const rental = await Rental.create({
           modelId: modelId.toString(),
           customerWallet: user.toLowerCase(),
           apiKey: generateApiKey(),
-          expiresAt
+          expiresAt,
+          durationMinutes: durationInMinutes
         });
 
         console.log("🔑 API key issued:", rental.apiKey);
+        console.log("⏳ Duration:", durationInMinutes, "minutes");
         console.log("⏳ Expires at:", expiresAt.toISOString());
 
         /* =========================

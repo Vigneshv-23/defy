@@ -21,6 +21,9 @@ const rentalSchema = new mongoose.Schema(
       type: Date,
       required: true
     },
+    durationMinutes: {
+      type: Number
+    },
     active: {
       type: Boolean,
       default: true
