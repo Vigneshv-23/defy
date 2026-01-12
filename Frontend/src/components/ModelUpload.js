@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useWeb3 } from '../contexts/Web3Context';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { parseETH } from '../utils/web3';
+import { modelAPI } from '../utils/api';
 
 function ModelUpload() {
   const { user } = useAuth();
+  const { account, isConnected } = useWeb3();
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    pricePerInference: '0.01',
+    pricePerMinute: '0.001', // Price in ETH per minute
     category: 'text-generation',
     tags: '',
     modelFile: null,
@@ -23,6 +27,11 @@ function ModelUpload() {
     
     if (!user) {
       toast.error('Please login first');
+      return;
+    }
+
+    if (!isConnected || !account) {
+      toast.error('Please connect your wallet first to register a model');
       return;
     }
     
@@ -44,7 +53,7 @@ function ModelUpload() {
         }
       });
       
-      const ipfsHash = ipfsRes.data.hash;
+      const ipfsCid = ipfsRes.data.hash;
       
       // Upload image to IPFS if provided
       let imageHash = '';
@@ -55,23 +64,27 @@ function ModelUpload() {
         imageHash = imageRes.data.hash;
       }
       
-      // Register model
-      const response = await axios.post(`${API_URL}/api/models/register`, {
-        owner: user.email,
+      // Convert price from ETH to wei
+      const pricePerMinuteInWei = parseETH(formData.pricePerMinute).toString();
+      
+      // HARDCODED FOR HACKATHON: Always use dev account
+      const DEV_ACCOUNT = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+      
+      // Register model on blockchain via backend
+      // Backend will register using dev account automatically
+      const response = await modelAPI.register({
+        wallet: DEV_ACCOUNT, // Hardcoded dev account
         name: formData.name,
         description: formData.description,
-        ipfsHash,
-        imageHash,
-        pricePerInference: formData.pricePerInference,
-        category: formData.category,
-        tags: formData.tags.split(',').map(tag => tag.trim())
+        ipfsCid: ipfsCid,
+        pricePerMinute: pricePerMinuteInWei
       });
       
-      toast.success('Model registered successfully!');
+      toast.success('Model registered successfully on blockchain!');
       setFormData({
         name: '',
         description: '',
-        pricePerInference: '0.01',
+        pricePerMinute: '0.001',
         category: 'text-generation',
         tags: '',
         modelFile: null,
@@ -80,7 +93,8 @@ function ModelUpload() {
       setUploadProgress(0);
       
     } catch (error) {
-      toast.error('Failed to upload model: ' + error.message);
+      console.error('Error registering model:', error);
+      toast.error('Failed to register model: ' + (error.response?.data?.error || error.message));
     } finally {
       setLoading(false);
     }
@@ -142,20 +156,20 @@ function ModelUpload() {
             {/* Price */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price per Inference (ETH) *
+                Price per Minute (ETH) *
               </label>
               <input
                 type="number"
-                name="pricePerInference"
+                name="pricePerMinute"
                 required
-                min="0.001"
-                step="0.001"
+                min="0.0001"
+                step="0.0001"
                 className="w-full px-4 py-2 border rounded-lg"
-                value={formData.pricePerInference}
+                value={formData.pricePerMinute}
                 onChange={handleChange}
               />
               <p className="text-sm text-gray-500 mt-1">
-                You'll receive 70% of this amount for each inference
+                Models will be owned by dev account (0xf39F...92266) and receive 75% of payments
               </p>
             </div>
             

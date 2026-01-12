@@ -16,7 +16,22 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  // Get API URL from centralized config - use port 5000 for backend
+  const getApiUrl = () => {
+    if (process.env.REACT_APP_API_URL && typeof window !== 'undefined' && 
+        !window.location.hostname.includes('localhost')) {
+      return process.env.REACT_APP_API_URL;
+    }
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:5000';
+      }
+    }
+    return 'https://nondisastrously-ungrazed-hang.ngrok-free.dev';
+  };
+
+  const API_URL = getApiUrl();
 
   useEffect(() => {
     checkAuth();

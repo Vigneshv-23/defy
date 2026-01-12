@@ -154,4 +154,112 @@ router.get("/status/:requestId", async (req, res) => {
   }
 });
 
+/**
+ * POST /inference/submit
+ * Approved node only - Submit inference result and distribute payment
+ * Body: { requestId: "0", wallet: "0x..." }
+ */
+router.post("/submit", async (req, res) => {
+  try {
+    const { requestId, wallet: nodeWallet } = req.body;
+
+    if (!requestId) {
+      return res.status(400).json({ error: "Missing required field: requestId" });
+    }
+
+    // HARDCODED FOR HACKATHON: Use dev account as node
+    // Dev account is already approved as a node
+    const DEV_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+    const nodeWalletInstance = new ethers.Wallet(DEV_PRIVATE_KEY, provider);
+
+    const inferenceManager = new ethers.Contract(
+      ADDRESSES.inferenceManager,
+      inferenceManagerArtifact,
+      nodeWalletInstance
+    );
+
+    console.log("📝 Submitting inference result...");
+    console.log("  Request ID:", requestId);
+    console.log("  Node wallet:", nodeWallet);
+
+    const tx = await inferenceManager.submitResult(requestId);
+    console.log("  Transaction hash:", tx.hash);
+
+    const receipt = await tx.wait();
+    console.log("  ✅ Result submitted, payment distributed");
+
+    res.json({
+      success: true,
+      requestId,
+      transactionHash: tx.hash,
+      blockNumber: receipt.blockNumber,
+      message: "Payment distributed: 75% to model owner, 25% to commission account"
+    });
+  } catch (err) {
+    console.error("❌ Error submitting result:", err);
+
+    if (err.reason) {
+      return res.status(400).json({ error: `Blockchain error: ${err.reason}` });
+    }
+
+    res.status(500).json({
+      error: "Failed to submit result",
+      details: err.message
+    });
+  }
+});
+
+/**
+ * GET /inference/next-request-id
+ * Get the next request ID that will be assigned
+ */
+router.get("/next-request-id", async (req, res) => {
+  try {
+    const inferenceManager = new ethers.Contract(
+      ADDRESSES.inferenceManager,
+      inferenceManagerArtifact,
+      provider
+    );
+
+    const nextRequestId = await inferenceManager.nextRequestId();
+
+    res.json({
+      nextRequestId: nextRequestId.toString()
+    });
+  } catch (err) {
+    console.error("❌ Error fetching next request ID:", err);
+    res.status(500).json({
+      error: "Failed to fetch next request ID",
+      details: err.message
+    });
+  }
+});
+
+/**
+ * GET /inference/commission-account
+ * Get the commission account address
+ */
+router.get("/commission-account", async (req, res) => {
+  try {
+    const inferenceManager = new ethers.Contract(
+      ADDRESSES.inferenceManager,
+      inferenceManagerArtifact,
+      provider
+    );
+
+    // Note: commissionAccount is a public variable, so we can read it
+    const commissionAccount = await inferenceManager.commissionAccount();
+
+    res.json({
+      commissionAccount: commissionAccount
+    });
+  } catch (err) {
+    console.error("❌ Error fetching commission account:", err);
+    res.status(500).json({
+      error: "Failed to fetch commission account",
+      details: err.message
+    });
+  }
+});
+
 export default router;

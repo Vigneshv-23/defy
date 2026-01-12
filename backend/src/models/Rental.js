@@ -3,8 +3,7 @@ import mongoose from "mongoose";
 const rentalSchema = new mongoose.Schema(
   {
     modelId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Model",
+      type: String,
       required: true
     },
     customerWallet: {
@@ -23,6 +22,10 @@ const rentalSchema = new mongoose.Schema(
     },
     durationMinutes: {
       type: Number
+    },
+    requestId: {
+      type: String,
+      index: true
     },
     active: {
       type: Boolean,

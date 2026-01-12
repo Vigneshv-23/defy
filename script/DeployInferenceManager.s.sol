@@ -21,8 +21,10 @@ contract DeployInferenceManager is Script {
             vm.startBroadcast();
         }
 
+        // Commission account: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (Account 2)
+        address commissionAccount = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
         InferenceManager manager =
-            new InferenceManager(nodeRegistry, modelRegistry);
+            new InferenceManager(nodeRegistry, modelRegistry, commissionAccount);
         vm.stopBroadcast();
 
         console.log("InferenceManager deployed at:", address(manager));

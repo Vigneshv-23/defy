@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { FiMenu, FiX, FiUser, FiLogOut, FiHome, FiPackage, FiUpload, FiShield } from 'react-icons/fi';
+import Web3Connect from './Web3Connect';
+import { FiMenu, FiX, FiUser, FiLogOut, FiHome, FiPackage, FiUpload, FiShield, FiLink } from 'react-icons/fi';
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,10 +33,40 @@ function Navbar() {
               Marketplace
             </Link>
             
+            {/* Blockchain Features */}
+            <div className="relative group">
+              <button className="text-gray-700 hover:text-blue-600 transition font-medium flex items-center gap-1">
+                Blockchain <FiLink className="w-4 h-4" />
+              </button>
+              <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition">
+                <Link
+                  to="/blockchain/models"
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition"
+                >
+                  Models
+                </Link>
+                <Link
+                  to="/blockchain/inference"
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition"
+                >
+                  Inference
+                </Link>
+                <Link
+                  to="/blockchain/nodes"
+                  className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition"
+                >
+                  Nodes
+                </Link>
+              </div>
+            </div>
+            
             {user && (
               <>
                 <Link to="/dashboard" className="text-gray-700 hover:text-blue-600 transition font-medium">
                   Dashboard
+                </Link>
+                <Link to="/api-keys" className="text-gray-700 hover:text-blue-600 transition font-medium">
+                  API Keys
                 </Link>
                 <Link to="/upload" className="text-gray-700 hover:text-blue-600 transition font-medium">
                   Upload Model
@@ -49,8 +80,9 @@ function Navbar() {
             )}
           </div>
 
-          {/* Right Side - Profile */}
+          {/* Right Side - Web3 Connect & Profile */}
           <div className="hidden md:flex items-center space-x-4">
+            <Web3Connect />
             {user ? (
               <div className="relative">
                 <button
@@ -125,6 +157,31 @@ function Navbar() {
             >
               Marketplace
             </Link>
+            
+            <div className="border-t border-gray-200 pt-3 mt-3">
+              <p className="text-xs text-gray-500 mb-2 px-4">Blockchain</p>
+              <Link
+                to="/blockchain/models"
+                onClick={() => setIsOpen(false)}
+                className="block px-4 py-2 text-gray-700 hover:text-blue-600 transition font-medium"
+              >
+                Models
+              </Link>
+              <Link
+                to="/blockchain/inference"
+                onClick={() => setIsOpen(false)}
+                className="block px-4 py-2 text-gray-700 hover:text-blue-600 transition font-medium"
+              >
+                Inference
+              </Link>
+              <Link
+                to="/blockchain/nodes"
+                onClick={() => setIsOpen(false)}
+                className="block px-4 py-2 text-gray-700 hover:text-blue-600 transition font-medium"
+              >
+                Nodes
+              </Link>
+            </div>
             
             {user && (
               <>

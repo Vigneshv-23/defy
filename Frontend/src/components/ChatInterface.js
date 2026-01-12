@@ -5,8 +5,25 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import io from 'socket.io-client';
 import { FiSend, FiArrowLeft, FiClock } from 'react-icons/fi';
+import api, { modelAPI } from '../utils/api';
+import { formatETH, parseETH } from '../utils/web3';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Get API URL from centralized config - use port 5000
+const getApiUrl = () => {
+  if (process.env.REACT_APP_API_URL && typeof window !== 'undefined' && 
+      !window.location.hostname.includes('localhost')) {
+    return process.env.REACT_APP_API_URL;
+  }
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5000';
+    }
+  }
+  return 'https://nondisastrously-ungrazed-hang.ngrok-free.dev';
+};
+
+const API_URL = getApiUrl();
 const socket = io(API_URL);
 
 function ChatInterface() {
@@ -48,30 +65,106 @@ function ChatInterface() {
   };
 
   const fetchModelDetails = async () => {
+    if (!modelId || modelId === 'undefined') {
+      toast.error('Invalid model ID');
+      navigate('/marketplace');
+      return;
+    }
+    
+    console.log('📦 Fetching model details for:', modelId);
+    
     try {
-      const response = await axios.get(`${API_URL}/api/models?modelId=${modelId}`);
-      if (response.data && response.data.length > 0) {
-        setModel(response.data[0]);
+      // First try to get from MongoDB (supports both _id and blockchainModelId)
+      const modelsRes = await modelAPI.getAll();
+      const foundModel = modelsRes.data.find(m => 
+        m.blockchainModelId === modelId || 
+        m._id === modelId || 
+        m._id?.toString() === modelId.toString()
+      );
+      
+      if (foundModel) {
+        console.log('✅ Found model in MongoDB:', foundModel);
+        setModel(foundModel);
+        return;
       }
+      
+      // If not found in MongoDB, try blockchain (only if it's a numeric ID)
+      if (!isNaN(modelId)) {
+        try {
+          const response = await modelAPI.getFromBlockchain(modelId);
+          if (response.data) {
+            setModel({
+              modelId: modelId,
+              blockchainModelId: modelId,
+              name: `Model #${modelId}`,
+              ...response.data
+            });
+            return;
+          }
+        } catch (blockchainError) {
+          console.log('Model not on blockchain, using MongoDB ID');
+        }
+      }
+      
+      // If still not found
+      toast.error('Model not found');
+      navigate('/marketplace');
     } catch (error) {
       console.error('Error fetching model:', error);
       toast.error('Failed to load model details');
+      navigate('/marketplace');
     }
   };
 
   const initializeChat = async () => {
+    if (!user) {
+      toast.error('Please login first');
+      navigate('/login');
+      return;
+    }
+    
+    if (!modelId || modelId === 'undefined') {
+      toast.error('Invalid model ID');
+      return;
+    }
+    
     try {
-      const response = await axios.post(`${API_URL}/api/chat/start`, {
-        modelId: parseInt(modelId),
-        user: user?.email,
-        durationHours: 1
+      console.log('🔑 Generating API key for chat...', { 
+        modelId, 
+        userEmail: user.email, 
+        userWallet: user.wallet,
+        fullUser: user
       });
+      
+      // Generate API key for this chat session
+      // Backend now supports both wallet and email
+      const requestBody = {
+        modelId: modelId.toString(),
+        durationHours: 1
+      };
+      
+      // Add wallet or email (backend needs at least one)
+      if (user.wallet) {
+        requestBody.wallet = user.wallet;
+        console.log('  ✅ Added wallet to request');
+      } else if (user.email) {
+        requestBody.email = user.email;
+        console.log('  ✅ Added email to request');
+      } else {
+        console.error('  ❌ User has neither wallet nor email:', user);
+        toast.error('User must have either wallet or email');
+        return;
+      }
+      
+      console.log('  📤 Sending request:', requestBody);
+      const apiKeyRes = await axios.post(`${API_URL}/api-keys/generate`, requestBody);
+      console.log('  ✅ API key response:', apiKeyRes.data);
 
-      chatIdRef.current = response.data.chatId;
-      socket.emit('join_chat', response.data.chatId);
-
-      // Calculate time remaining
-      const expiresAt = new Date(response.data.expiresAt);
+      // Store API key for this session
+      chatIdRef.current = apiKeyRes.data.apiKey;
+      
+      // Calculate expiration time
+      const expiresAt = new Date(apiKeyRes.data.expiresAt);
       const updateTimer = () => {
         const now = new Date();
         const remaining = Math.max(0, expiresAt - now);
@@ -88,7 +181,7 @@ function ChatInterface() {
       return () => clearInterval(timerInterval);
     } catch (error) {
       console.error('Error initializing chat:', error);
-      toast.error('Failed to start chat session');
+      toast.error('Failed to start chat session: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -108,33 +201,34 @@ function ChatInterface() {
     setLoading(true);
 
     try {
-      // Generate API key for this session
-      const apiKeyRes = await axios.post(`${API_URL}/api/generate-api-key`, {
-        modelId: parseInt(modelId),
-        user: user.email,
-        durationHours: 1
-      });
-
-      const apiKey = apiKeyRes.data.apiKey;
-
-      // Request inference (payment tracked in database)
-      const inferenceRes = await axios.post(`${API_URL}/api/inference/request`, {
-        modelId: parseInt(modelId),
-        user: user.email,
-        inputData: userMessage.content,
-        apiKey
-      });
+      // Use the API key from chat initialization
+      const apiKey = chatIdRef.current;
+      
+      if (!apiKey) {
+        toast.error('Chat session not initialized');
+        setLoading(false);
+        return;
+      }
 
       toast.success('Message sent! Processing...');
 
-      // Send message to backend for AI processing
-      const response = await axios.post(`${API_URL}/api/chat/message`, {
-        chatId: chatIdRef.current,
-        message: userMessage.content,
-        apiKey
+      // Send message to Q&A endpoint
+      const response = await axios.post(`${API_URL}/qa/ask`, {
+        question: userMessage.content
+      }, {
+        headers: {
+          'x-api-key': apiKey
+        }
       });
 
-      // The AI response will come via socket.io or in response
+      // Add AI response to messages
+      const aiMessage = {
+        sender: 'ai',
+        content: response.data.answer,
+        timestamp: new Date()
+      };
+      
+      setMessages((prev) => [...prev, aiMessage]);
       setLoading(false);
     } catch (error) {
       console.error('Error sending message:', error);
@@ -173,7 +267,19 @@ function ChatInterface() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{model.name}</h1>
               <p className="text-sm text-gray-600">
-                ${model.pricePerInference?.toFixed(2) || '0.00'} per message
+                {(() => {
+                  const price = model.pricePerMinute || model.pricePerInference || '0';
+                  const priceNum = typeof price === 'number' ? price : parseFloat(price);
+                  
+                  // If price is already in ETH format (decimal < 1)
+                  if (priceNum < 1 && priceNum > 0) {
+                    return `${priceNum.toFixed(6)} ETH per minute`;
+                  }
+                  
+                  // Otherwise convert from wei
+                  const priceInETH = formatETH(price);
+                  return `${parseFloat(priceInETH).toFixed(6)} ETH per minute`;
+                })()}
               </p>
             </div>
           </div>
@@ -196,7 +302,19 @@ function ChatInterface() {
               <div className="text-4xl mb-4">💬</div>
               <p>Start a conversation with {model.name}</p>
               <p className="text-sm mt-2">
-                Each message costs ${model.pricePerInference?.toFixed(2) || '0.00'}
+                Each minute costs {(() => {
+                  const price = model.pricePerMinute || model.pricePerInference || '0';
+                  const priceNum = typeof price === 'number' ? price : parseFloat(price);
+                  
+                  // If price is already in ETH format (decimal < 1)
+                  if (priceNum < 1 && priceNum > 0) {
+                    return `${priceNum.toFixed(6)} ETH`;
+                  }
+                  
+                  // Otherwise convert from wei
+                  const priceInETH = formatETH(price);
+                  return `${parseFloat(priceInETH).toFixed(6)} ETH`;
+                })()}
               </p>
             </div>
           )}

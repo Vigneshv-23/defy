@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import { modelAPI } from '../utils/api';
 import ModelCard from './ModelCard';
 import toast from 'react-hot-toast';
 
@@ -14,28 +14,37 @@ function ModelMarketplace() {
   
   const { user } = useAuth();
   
+  console.log('📦 ModelMarketplace component rendered');
+  
   useEffect(() => {
+    console.log('🔄 ModelMarketplace mounted/updated, fetching models...');
+    console.log('📍 Filters:', { selectedCategory, sortBy, search });
     fetchModels();
   }, [selectedCategory, sortBy, search]);
   
   const fetchModels = async () => {
     try {
       setLoading(true);
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-      const response = await axios.get(`${API_URL}/api/models`, {
-        params: {
-          category: selectedCategory !== 'all' ? selectedCategory : undefined,
-          sortBy,
-          search
-        }
-      });
-      setModels(response.data);
+      console.log('🔄 Fetching models...');
+      // Use the centralized API client
+      const response = await modelAPI.getAll();
+      console.log('✅ Models response:', response);
+      
+      // Ensure response.data is an array
+      const modelsData = Array.isArray(response.data) ? response.data : [];
+      console.log(`📦 Found ${modelsData.length} models`);
+      setModels(modelsData);
       
       // Extract unique categories
-      const uniqueCategories = [...new Set(response.data.map(m => m.category))];
+      const uniqueCategories = [...new Set(modelsData.map(m => m.category || 'Uncategorized'))];
       setCategories(uniqueCategories);
     } catch (error) {
-      toast.error('Failed to fetch models');
+      console.error('❌ Error fetching models:', error);
+      console.error('Error response:', error.response);
+      console.error('Error message:', error.message);
+      console.error('Error code:', error.code);
+      toast.error(error.response?.data?.error || error.message || 'Failed to fetch models');
+      setModels([]); // Ensure models is always an array
     } finally {
       setLoading(false);
     }
@@ -48,13 +57,17 @@ function ModelMarketplace() {
     }
     
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const API_URL = process.env.REACT_APP_API_URL || 'https://nondisastrously-ungrazed-hang.ngrok-free.dev';
       
       // Generate API key
       const apiKeyRes = await axios.post(`${API_URL}/api/generate-api-key`, {
         modelId,
         user: user.email,
         durationHours: 1
+      }, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        }
       });
       
       const apiKey = apiKeyRes.data.apiKey;
@@ -65,6 +78,10 @@ function ModelMarketplace() {
         user: user.email,
         inputData,
         apiKey
+      }, {
+        headers: {
+          'ngrok-skip-browser-warning': 'true'
+        }
       });
       
       toast.success('Inference requested successfully!');
@@ -133,17 +150,17 @@ function ModelMarketplace() {
       </div>
       
       {/* Models Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {models.map(model => (
-          <ModelCard
-            key={model.modelId}
-            model={model}
-            onUse={requestInference}
-          />
-        ))}
-      </div>
-      
-      {models.length === 0 && (
+      {Array.isArray(models) && models.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {models.map(model => (
+            <ModelCard
+              key={model.modelId || model._id || Math.random()}
+              model={model}
+              onUse={requestInference}
+            />
+          ))}
+        </div>
+      ) : (
         <div className="text-center py-12">
           <div className="text-gray-400 text-5xl mb-4">🤖</div>
           <h3 className="text-xl font-semibold text-gray-600 mb-2">No models found</h3>

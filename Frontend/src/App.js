@@ -13,30 +13,41 @@ import ModelUpload from './components/ModelUpload';
 import Profile from './components/Profile';
 import AdminDashboard from './components/AdminDashboard';
 import ChatInterface from './components/ChatInterface';
+import NodeManagement from './components/NodeManagement';
+import BlockchainModels from './components/BlockchainModels';
+import InferenceManager from './components/InferenceManager';
+import ApiKeyManager from './components/ApiKeyManager';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Web3Provider } from './contexts/Web3Context';
 
 // Blockchain/Contract features removed - using simplified backend
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Toaster position="top-right" />
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/marketplace" element={<ModelMarketplace />} />
-            <Route path="/upload" element={<ProtectedRoute><ModelUpload /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-            <Route path="/chat/:modelId" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
-          </Routes>
-        </div>
-      </Router>
-    </AuthProvider>
+    <Web3Provider>
+      <AuthProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50">
+            <Toaster position="top-right" />
+            <Navbar />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/marketplace" element={<ModelMarketplace />} />
+              <Route path="/upload" element={<ProtectedRoute><ModelUpload /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="/chat/:modelId" element={<ProtectedRoute><ChatInterface /></ProtectedRoute>} />
+              <Route path="/blockchain/nodes" element={<NodeManagement />} />
+              <Route path="/blockchain/models" element={<BlockchainModels />} />
+              <Route path="/blockchain/inference" element={<InferenceManager />} />
+              <Route path="/api-keys" element={<ProtectedRoute><ApiKeyManager /></ProtectedRoute>} />
+            </Routes>
+          </div>
+        </Router>
+      </AuthProvider>
+    </Web3Provider>
   );
 }
 

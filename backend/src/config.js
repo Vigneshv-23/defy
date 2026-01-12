@@ -11,7 +11,7 @@ export const wallet = new ethers.Wallet(
 );
 
 export const ADDRESSES = {
-  inferenceManager: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
-  nodeRegistry: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-  modelRegistry: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+  inferenceManager: "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
+  nodeRegistry: "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+  modelRegistry: "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512"
 };

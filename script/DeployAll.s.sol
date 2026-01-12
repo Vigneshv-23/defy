@@ -8,18 +8,11 @@ import "../src/InferenceManager.sol";
 
 contract DeployAll is Script {
     function run() external {
-        // Try to get private key from env, otherwise use default (for local Anvil)
-        uint256 deployerPrivateKey = vm.envOr("PRIVATE_KEY", uint256(0));
-        
-        if (deployerPrivateKey != 0) {
-            vm.startBroadcast(deployerPrivateKey);
-            console.log("Deploying contracts...");
-            console.log("Deployer:", vm.addr(deployerPrivateKey));
-        } else {
-            vm.startBroadcast();
-            console.log("Deploying contracts to local network (Anvil)...");
-            console.log("Using default account");
-        }
+        // Use the private key passed via --private-key flag
+        // The deployer account will become the NodeRegistry admin
+        vm.startBroadcast();
+        console.log("Deploying contracts to local network (Anvil)...");
+        console.log("Deployer will become NodeRegistry admin");
 
         // 1. Deploy NodeRegistry (no dependencies)
         console.log("\n1. Deploying NodeRegistry...");
@@ -32,10 +25,14 @@ contract DeployAll is Script {
         console.log("ModelRegistry deployed at:", address(modelRegistry));
 
         // 3. Deploy InferenceManager (depends on NodeRegistry and ModelRegistry)
+        // Commission account: 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (Account 2)
         console.log("\n3. Deploying InferenceManager...");
+        address commissionAccount = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
+        console.log("Commission Account (25%):", commissionAccount);
         InferenceManager inferenceManager = new InferenceManager(
             address(nodeRegistry),
-            address(modelRegistry)
+            address(modelRegistry),
+            commissionAccount
         );
         console.log("InferenceManager deployed at:", address(inferenceManager));
 

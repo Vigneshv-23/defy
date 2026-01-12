@@ -32,6 +32,7 @@ contract InferenceManager {
 
     INodeRegistry public nodeRegistry;
     IModelRegistry public modelRegistry;
+    address public commissionAccount; // Account that receives 25% commission
 
     uint256 public nextRequestId;
     mapping(uint256 => InferenceRequest) public requests;
@@ -49,9 +50,11 @@ contract InferenceManager {
         address indexed node
     );
 
-    constructor(address _nodeRegistry, address _modelRegistry) {
+    constructor(address _nodeRegistry, address _modelRegistry, address _commissionAccount) {
         nodeRegistry = INodeRegistry(_nodeRegistry);
         modelRegistry = IModelRegistry(_modelRegistry);
+        commissionAccount = _commissionAccount;
+        require(_commissionAccount != address(0), "Commission account cannot be zero");
     }
 
     function requestInference(
@@ -108,13 +111,16 @@ contract InferenceManager {
         (address modelOwner, , ) =
             modelRegistry.getModel(req.modelId);
 
-        uint256 nodeFee = req.paidAmount / 2;
-        uint256 modelFee = req.paidAmount - nodeFee;
+        // Payment split: 75% to model owner, 25% to commission account
+        uint256 commissionFee = (req.paidAmount * 25) / 100; // 25% commission
+        uint256 modelFee = req.paidAmount - commissionFee; // 75% to model owner
 
+        // Send 25% commission to commission account
         (bool ok1, ) =
-            payable(msg.sender).call{value: nodeFee}("");
-        require(ok1, "Node payment failed");
+            payable(commissionAccount).call{value: commissionFee}("");
+        require(ok1, "Commission payment failed");
 
+        // Send 75% to model owner
         (bool ok2, ) =
             payable(modelOwner).call{value: modelFee}("");
         require(ok2, "Model payment failed");
