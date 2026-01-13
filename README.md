@@ -121,16 +121,29 @@ Data not stored on‑chain:
 - End‑to‑end inference flow validated
 
 ---
+## Think Root
+### Home Page:
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/a241a452-6ed6-491a-8748-2cba6e89cac9" />
 
-## Planned Enhancements
+### Market Place:
+<img width="1600" height="858" alt="image" src="https://github.com/user-attachments/assets/3a94d60c-3d17-4b83-a760-fb3caaa40031" />
 
-### INCO (Planned)
+### Creator Lab:
+<img width="1600" height="857" alt="image" src="https://github.com/user-attachments/assets/e3357d6c-3b8a-4974-8a3e-91c73b7c5ebe" />
+
+---
+
+## Enhancements
+
+### INCO 
 
 INCO is planned to add:
 - Confidential smart contracts
 - Privacy‑preserving handling of inference metadata
 
-INCO is not implemented in the current version.
+INCO is partially implemented in the current version.
+
+<img width="1600" height="826" alt="image" src="https://github.com/user-attachments/assets/19b77136-fb5b-4187-b189-3505055b25e8" />
 
 ---
 
@@ -140,7 +153,7 @@ Maestro is planned to improve:
 - Workflow orchestration
 - Automation and execution reliability
 
-Maestro is not implemented in the current version.
+Maestro is partially implemented in the current version.
 
 ---
 
@@ -167,14 +180,22 @@ Project Name: InferChain
 InferChain demonstrates a practical approach to verifiable AI inference using a hybrid architecture.  
 The UI and the core system were built separately, following a clear separation of concerns.
 
+---
 <img width="2206" height="1632" alt="image" src="https://github.com/user-attachments/assets/23e105f2-28c9-4123-be39-db2b23b15bd9" />
 <img width="2203" height="1623" alt="image" src="https://github.com/user-attachments/assets/62b78adc-2c12-47e8-9e0f-e31bf7b15edc" />
+
+---
+
 ## before:
 <img width="648" height="1466" alt="image" src="https://github.com/user-attachments/assets/20276c1e-2482-441f-8ed6-554be9797708" />
+
+---
 
 ## after
 <img width="2178" height="1579" alt="image" src="https://github.com/user-attachments/assets/d12e0505-1d9b-43c7-99db-da5d39656157" />
 <img width="636" height="1330" alt="image" src="https://github.com/user-attachments/assets/70b9c930-9742-4129-b9ef-edb0bcff2282" />
+
+---
 
 ## dev private key : ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ## dev address : 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
