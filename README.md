@@ -10,7 +10,6 @@ The system uses a hybrid design:
 
 This repository contains the **backend and smart contract source code**.  
 The **UI was built separately** using a no‑code platform.
-
 ---
 
 ## Problem Statement
