@@ -38,40 +38,7 @@ This makes inference verifiable without sacrificing performance.
 
 ## Architecture
 
-
----
-
-## Problem Statement
-
-Most AI inference systems today are centralized.
-
-Users cannot verify whether an inference was actually executed or if the results are reliable.  
-Developers lack clear visibility into usage and monetization.
-
-As AI adoption increases in critical and large‑scale applications, this lack of transparency creates trust issues.
-
----
-
-## Solution
-
-InferChain separates computation from verification.
-
-- AI models run off‑chain to remain fast and cost‑efficient
-- Blockchain records inference requests, payments, and execution metadata
-- Sensitive data is never stored on‑chain
-
-This design provides auditability without compromising performance.
-
----
-
-## Architecture
-
-
-Blockchain is used for verification, not for running AI models.
-
----
-
-## Frontend (UI)
+### Frontend (UI)
 
 - Built using Flux / ThinkRoot (no‑code platform)
 - Provides:
@@ -84,7 +51,7 @@ The frontend source code is not included in this repository because it is manage
 
 ---
 
-## Backend
+### Backend
 
 This repository includes the backend implementation.
 
@@ -97,7 +64,7 @@ The backend is responsible for:
 
 ---
 
-## Smart Contracts
+### Smart Contracts
 
 Smart contracts handle:
 - Inference request registration
@@ -113,7 +80,7 @@ Data not stored on‑chain:
 
 ---
 
-## Current Status
+### Current Status
 
 - MVP completed
 - Backend and smart contracts implemented
@@ -203,6 +170,6 @@ The UI and the core system were built separately, following a clear separation o
 ## user private key : 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
 ## user address : 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
 
-# platform private key : 5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
-# platform address : 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+## platform private key : 5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+## platform address : 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
 
